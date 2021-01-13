@@ -27,8 +27,9 @@ export class Movies {
     return instance.get<MovieResults>(`/movie/now_playing?${paramsDefault}&page=${page}`);
   }
 
-  popular({ page = 1 }: ParamsUrl) {
-    return instance.get<MovieResults>(`/movie/popular?${paramsDefault}&page=${page}`);
+  popular({ page }: ParamsUrl) {
+    const { pageParam } = page;
+    return instance.get<MovieResults>(`/movie/popular?${paramsDefault}&page=${pageParam}`);
   }
 
   topRated({ page = 1 }: ParamsUrl) {

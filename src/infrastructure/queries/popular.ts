@@ -1,21 +1,30 @@
-import { useQuery } from 'react-query';
+import { useInfiniteQuery } from 'react-query';
 
 import { Movies } from '~/infrastructure/services';
 import { MovieResults } from '~/infrastructure/models';
 
 const movies = new Movies();
 
-const useFetchPopular = (page: number) => {
-  const getPopular = async () => {
+const useFetchPopular = () => {
+  const getPopular = async page => {
     const result = await movies.popular({ page });
     return result?.data;
   };
 
-  const { isLoading, isError, error, data, isFetching } = useQuery<MovieResults>(['popular', page], getPopular, {
-    keepPreviousData: true,
-  });
+  const { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, status } = useInfiniteQuery<MovieResults>(
+    'popular',
+    getPopular,
+    {
+      getNextPageParam: lastPage => {
+        if (lastPage.page === lastPage.total_pages) {
+          return undefined;
+        }
+        return lastPage.page + 1;
+      },
+    },
+  );
 
-  return { isLoading, isError, error, data, isFetching };
+  return { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, status };
 };
 
 export default useFetchPopular;

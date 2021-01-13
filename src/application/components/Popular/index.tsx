@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useHistory } from 'react-router-dom';
 
 import { MoviePreview } from '~/infrastructure/models';
@@ -20,66 +20,60 @@ import {
   ButtonsActions,
   ContainerPagination,
   Button,
-  TotalPages,
 } from './styles';
 
 const ButtonFavorite = lazy(() => import('favorites/ButtonFavorite'));
 
 const Popular = () => {
   const history = useHistory();
-  const [page, setPage] = useState<number>(1);
 
-  const { isLoading, isError, error, data, isFetching } = useFetchPopular(page);
-
-  const totalPages = data?.total_pages || 0;
+  const { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, status } = useFetchPopular();
 
   const handleGoPageDetails = (mediaId: number) => history.push(`/details/${mediaId}`);
-
   return (
     <BackdropList>
-      {isError && <div>Error:{error.message}</div>}
-      {isLoading && <LoaderAnimation />}
       <GridList>
         <Suspense fallback={<LoaderAnimation />}>
-          {data?.results?.map((item: MoviePreview) => (
-            <Card key={item.id}>
-              <WrapperButtonFavorite>
-                <ButtonFavorite media={item} />
-              </WrapperButtonFavorite>
-              <Header onClick={() => handleGoPageDetails(item.id)}>
-                {item.backdrop_path ? (
-                  <Image src={`${image.secure_base_url}${image.backdrop_sizes.w300}${item.backdrop_path}`} alt={item.title} />
-                ) : (
-                  <ImagePlaceholder />
-                )}
-                <Title>{item.title}</Title>
-              </Header>
-              <Overview onClick={() => handleGoPageDetails(item.id)}>{item.overview.substring(0, 150)}</Overview>
-              <ButtonsActions>
-                <button className='learn-more' type='button' onClick={() => handleGoPageDetails(item.id)}>
-                  Learn More
-                </button>
-              </ButtonsActions>
-            </Card>
+          {status === 'error' && (<div> Error: {error.message}</div>)}
+          {status === 'loading' && <LoaderAnimation />}
+          {data?.pages.map((group, i) => (
+            <React.Fragment key={i}>
+              {group?.results.map((item: MoviePreview) => (
+                <Card key={item.id}>
+                  <WrapperButtonFavorite>
+                    <ButtonFavorite media={item} />
+                  </WrapperButtonFavorite>
+                  <Header onClick={() => handleGoPageDetails(item.id)}>
+                    {item.backdrop_path ? (
+                      <Image src={`${image.secure_base_url}${image.backdrop_sizes.w300}${item.backdrop_path}`} alt={item.title} />
+                    ) : (
+                      <ImagePlaceholder />
+                    )}
+                    <Title>{item.title}</Title>
+                  </Header>
+                  <Overview onClick={() => handleGoPageDetails(item.id)}>{item.overview.substring(0, 150)}</Overview>
+                  <ButtonsActions>
+                    <button className='learn-more' type='button' onClick={() => handleGoPageDetails(item.id)}>
+                      Learn More
+                    </button>
+                  </ButtonsActions>
+                </Card>
+              ))}
+            </React.Fragment>
           ))}
+
+          {/* {data?.results?.map((item: MoviePreview) => (
+
+          ))} */}
         </Suspense>
       </GridList>
       <>
-        {isFetching ? (
-          <LoaderAnimation />
-        ) : (
-          <ContainerPagination>
-            <Button onClick={() => setPage(old => Math.max(old - 1, 1))} disabled={page === 1}>
-              Previous Page
-            </Button>
-            <TotalPages>
-              {page} of {totalPages}
-            </TotalPages>
-            <Button onClick={() => setPage(old => (page > totalPages ? old : old + 1))} disabled={totalPages === page}>
-              Next page
-            </Button>
-          </ContainerPagination>
-        )}
+        <ContainerPagination>
+          <Button type='button' onClick={() => fetchNextPage()} disabled={!hasNextPage || isFetchingNextPage}>
+            {isFetchingNextPage ? 'Loading more...' : hasNextPage ? 'Load More' : 'Nothing more to load'}
+          </Button>
+          <div>{isFetching && !isFetchingNextPage ? 'Fetching...' : null}</div>
+        </ContainerPagination>
       </>
     </BackdropList>
   );
